@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 from load_data import load_data, get_data_summary
 from placement_eda import run_eda
 from preprocessing import run_preprocessing
-from model_training import run_model
+from models import MODEL_RUNNERS, TEMPLATES
 from kmeans_clustering import run_kmeans_manual, run_kmeans_elbow, run_kmeans_silhouette
 
 
@@ -224,9 +224,11 @@ def preprocessing_page():
 @app.route("/models/<model_key>")
 def model_page(model_key):
     try:
-        results = run_model(model_key)
+        if model_key not in MODEL_RUNNERS:
+            raise ValueError(f"Unknown model key: {model_key!r}")
+        results = MODEL_RUNNERS[model_key]()
         return render_template(
-            "models.html",
+            TEMPLATES[model_key],
             active=model_key,
             results=results,
             chart_version=int(__import__("time").time())
