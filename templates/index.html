@@ -1,102 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Placement Prediction Project</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Prediction — Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<header class="topbar">
-    <h1>Placement Prediction Project</h1>
-</header>
+{% include '_shell.html' %}
 
-<div class="layout">
-    <!-- Left panel -->
-    <nav class="sidebar">
-        <ul>
-            <li>
-                <a href="{{ url_for('data_loading') }}"
-                   class="menu-item {% if active == 'data-loading' %}active{% endif %}">
-                    Data Loading
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('eda_page') }}"
-                   class="menu-item {% if active == 'eda' %}active{% endif %}">
-                    EDA
-                </a>
-            </li>
+<main class="content">
 
-            <li class="menu-item disabled">Preprocessing (coming soon)</li>
-            <li class="menu-item disabled">Model Training (coming soon)</li>
-            <li class="menu-item disabled">Prediction (coming soon)</li>
-        </ul>
-    </nav>
+    {% if active == 'none' %}
+    <!-- ═══════════════════ WELCOME ═══════════════════ -->
+    <div class="welcome-hero">
+        <h2>Welcome to the ML Dashboard ☀</h2>
+        <p>
+            A complete step-by-step machine learning pipeline to predict student placement outcomes.
+            Explore the data, clean it, train supervised models and discover hidden student clusters.
+        </p>
+        <div class="pipeline-steps">
+            <a href="{{ url_for('data_loading') }}" class="pipeline-step">
+                <span class="step-num">1</span> Data Loading
+            </a>
+            <a href="{{ url_for('eda_page') }}" class="pipeline-step">
+                <span class="step-num">2</span> EDA
+            </a>
+            <a href="{{ url_for('preprocessing_page') }}" class="pipeline-step">
+                <span class="step-num">3</span> Preprocessing
+            </a>
+            <a href="{{ url_for('model_page', model_key='logistic') }}" class="pipeline-step">
+                <span class="step-num">4</span> Classification
+            </a>
+            <a href="{{ url_for('model_page', model_key='random-forest') }}" class="pipeline-step">
+                <span class="step-num">5</span> Ensemble
+            </a>
+            <a href="{{ url_for('model_page', model_key='xgboost') }}" class="pipeline-step">
+                <span class="step-num">6</span> Boosting
+            </a>
+            <a href="{{ url_for('kmeans_page') }}" class="pipeline-step">
+                <span class="step-num">7</span> Clustering
+            </a>
+        </div>
+    </div>
 
-    <!-- Main content -->
-    <main class="content">
+    <!-- Quick-access grid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; margin-bottom:24px;">
 
-        {% if active == 'none' %}
-            <p>Select an option from the left panel to get started.</p>
-        {% endif %}
+        <a href="{{ url_for('data_loading') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">📂</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">Data Loading</div>
+                <div style="font-size:12px; color:#8a7040;">Inspect shape, types & missing values</div>
+            </div>
+        </a>
 
-        {% if active == 'data-loading' %}
+        <a href="{{ url_for('eda_page') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">🔍</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">EDA</div>
+                <div style="font-size:12px; color:#8a7040;">Distributions, correlations & charts</div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('preprocessing_page') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">⚙️</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">Preprocessing</div>
+                <div style="font-size:12px; color:#8a7040;">Impute, encode, scale & split</div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('model_page', model_key='logistic') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">🎯</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">Classification</div>
+                <div style="font-size:12px; color:#8a7040;">Logistic, Decision Tree, Random Forest</div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('model_page', model_key='adaboost') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">🚀</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">Boosting</div>
+                <div style="font-size:12px; color:#8a7040;">AdaBoost · GBM · LightGBM · XGBoost</div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('kmeans_page') }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:transform .15s, box-shadow .15s;"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(255,154,0,.22)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:32px; margin-bottom:10px;">🔵</div>
+                <div style="font-weight:700; font-size:14px; color:#1a1200; margin-bottom:4px;">K-Means Clustering</div>
+                <div style="font-size:12px; color:#8a7040;">Manual · Elbow · Silhouette</div>
+            </div>
+        </a>
+
+    </div>
+
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">💡</span> Getting Started</div>
+        <p style="margin:0; font-size:13.5px; color:#5a3800; line-height:1.7;">
+            Start with <strong>Data Loading</strong> to inspect the raw dataset, then move to
+            <strong>EDA</strong> to understand distributions. <strong>Preprocessing</strong>
+            cleans, encodes and scales the data. All supervised models (Regression, Decision Tree,
+            Random Forest, AdaBoost, Gradient Boosting, LightGBM, XGBoost) are in the left panel
+            under <em>Regression</em>, <em>Decision Tree</em> and <em>Ensemble</em>.
+            The <strong>K-Means Clustering</strong> section offers unsupervised student profiling.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if active == 'data-loading' %}
+    <!-- ═══════════════════ DATA LOADING ═══════════════════ -->
+    <div class="page-header">
+        <div class="page-icon">📂</div>
+        <div class="page-title-block">
             <h2>Data Loading</h2>
+            <p>Raw dataset shape, column types, missing value counts and a row preview.</p>
+        </div>
+    </div>
 
-            {% if error %}
-                <div class="error">{{ error }}</div>
-            {% endif %}
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
-            {% if summary %}
-                <table class="summary-table">
-                    <tr><td>Rows</td><td>{{ summary.n_rows }}</td></tr>
-                    <tr><td>Columns</td><td>{{ summary.n_columns }}</td></tr>
-                </table>
+    {% if summary %}
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-num">{{ summary.n_rows }}</div>
+            <div class="stat-label">Total Rows</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ summary.n_columns }}</div>
+            <div class="stat-label">Columns</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ summary.missing_counts.values() | sum }}</div>
+            <div class="stat-label">Missing Cells</div>
+        </div>
+    </div>
 
-                <h3>Column Info</h3>
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>Column</th><th>Dtype</th><th>Missing Values</th></tr>
-                        </thead>
-                        <tbody>
-                        {% for col in summary.columns %}
-                            <tr>
-                                <td>{{ col }}</td>
-                                <td>{{ summary.dtypes[col] }}</td>
-                                <td>{{ summary.missing_counts[col] }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">🗂</span> Column Information</div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Column</th><th>Data Type</th><th>Missing Values</th></tr>
+                </thead>
+                <tbody>
+                {% for col in summary.columns %}
+                    <tr>
+                        <td style="color:#bbb;">{{ loop.index }}</td>
+                        <td><strong>{{ col }}</strong></td>
+                        <td><span class="badge badge-label">{{ summary.dtypes[col] }}</span></td>
+                        <td>
+                            {% if summary.missing_counts[col] > 0 %}
+                                <span class="badge badge-drop">{{ summary.missing_counts[col] }}</span>
+                            {% else %}
+                                <span class="badge badge-green">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-                <h3>Preview (first 10 rows)</h3>
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                            {% for col in summary.columns %}
-                                <th>{{ col }}</th>
-                            {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for row in summary.preview %}
-                            <tr>
-                            {% for col in summary.columns %}
-                                <td>{{ row[col] }}</td>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% endif %}
-        {% endif %}
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">👁</span> Dataset Preview — First 10 Rows</div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>{% for col in summary.columns %}<th>{{ col }}</th>{% endfor %}</tr>
+                </thead>
+                <tbody>
+                {% for row in summary.preview %}
+                    <tr>{% for col in summary.columns %}<td>{{ row[col] }}</td>{% endfor %}</tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
 
-    </main>
+</main>
 </div>
 
 </body>
