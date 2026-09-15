@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering — Placement Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* ── method pick cards ── */
+        .method-pick { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:28px; }
+        .method-pick-card {
+            flex:1; min-width:200px;
+            background:var(--card); border:2px solid var(--border);
+            border-radius:var(--radius); padding:22px 20px; text-align:center;
+            text-decoration:none; color:inherit;
+            transition:border-color .18s, box-shadow .18s, transform .15s;
+            box-shadow:var(--shadow);
+        }
+        .method-pick-card:hover {
+            border-color:var(--sun1);
+            box-shadow:0 6px 20px rgba(255,154,0,.20);
+            transform:translateY(-3px);
+        }
+        .method-pick-card.selected {
+            border-color:var(--sun1); background:#fff8e1;
+            box-shadow:0 6px 20px rgba(255,154,0,.25);
+        }
+        .mpc-icon  { font-size:34px; margin-bottom:10px; }
+        .mpc-title { font-size:15px; font-weight:700; color:var(--dark); margin-bottom:6px; }
+        .mpc-desc  { font-size:12px; color:var(--muted); line-height:1.5; }
+
+        /* ── manual k form ── */
+        .k-form { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+        .k-form label { font-weight:600; font-size:13px; color:var(--dark); }
+        .k-input {
+            width:80px; padding:9px 12px; border:2px solid var(--border); border-radius:8px;
+            font-size:15px; font-family:inherit; font-weight:700; color:var(--dark);
+            text-align:center; background:var(--card); outline:none; transition:border-color .15s;
+        }
+        .k-input:focus { border-color:var(--sun1); }
+
+        /* ── metric pills ── */
+        .metric-pills { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:22px; }
+        .m-pill {
+            background:var(--card); border:1px solid var(--border);
+            border-top:3px solid var(--sun1); border-radius:var(--radius);
+            padding:14px 22px; text-align:center; min-width:130px; box-shadow:var(--shadow);
+        }
+        .m-pill .mp-val   { font-size:26px; font-weight:800; color:var(--sun1); }
+        .m-pill .mp-label { font-size:11.5px; color:var(--muted); margin-top:3px; }
+
+        /* ── cluster size pills ── */
+        .cluster-pills { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; }
+        .c-pill {
+            padding:8px 18px; border-radius:20px; font-size:13px; font-weight:600;
+            border:2px solid var(--border); background:var(--card); color:var(--dark);
+        }
+
+        /* ── table best row ── */
+        .best-row td { background:#fff8e1 !important; font-weight:700; }
+
+        /* ── chart full width ── */
+        .chart-full img { max-width:100%; width:720px; border-radius:8px; }
+    </style>
+</head>
+<body>
+
+{% include '_shell.html' %}
+
+<main class="content">
+
+    <!-- Page header -->
+    <div class="page-header">
+        <div class="page-icon">🔵</div>
+        <div class="page-title-block">
+            <h2>K-Means Clustering</h2>
+            <p>Unsupervised grouping of students by academic and skill profile.</p>
+        </div>
+    </div>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <!-- Data source notice -->
+    <div class="info-box" style="margin-bottom:24px;">
+        📁 <strong>Data source:</strong>
+        <code>placement_Dataset_preprocessed.csv</code> —
+        missing values imputed, categorical columns one-hot encoded,
+        all numeric features StandardScaled so no single feature dominates KMeans distances.
+        PlacementStatus, Salary Package and ID columns are excluded before clustering.
+    </div>
+
+    <!-- ══ METHOD SELECTION ══ -->
+    <div class="section-title">Choose a K-Selection Method</div>
+    <div class="method-pick">
+
+        <a href="{{ url_for('kmeans_page', method='manual', k=3) }}"
+           class="method-pick-card {% if method == 'manual' %}selected{% endif %}">
+            <div class="mpc-icon">✏️</div>
+            <div class="mpc-title">Manual K</div>
+            <div class="mpc-desc">
+                You decide the number of clusters. WCSS vs K is still
+                plotted so you can visually compare your choice.
+            </div>
+        </a>
+
+        <a href="{{ url_for('kmeans_page', method='elbow') }}"
+           class="method-pick-card {% if method == 'elbow' %}selected{% endif %}">
+            <div class="mpc-icon">📐</div>
+            <div class="mpc-title">Elbow Method</div>
+            <div class="mpc-desc">
+                Computes WCSS for K = 2–10 and picks the point where
+                the curve bends — the diminishing-returns "elbow".
+            </div>
+        </a>
+
+        <a href="{{ url_for('kmeans_page', method='silhouette') }}"
+           class="method-pick-card {% if method == 'silhouette' %}selected{% endif %}">
+            <div class="mpc-icon">📏</div>
+            <div class="mpc-title">Silhouette Method</div>
+            <div class="mpc-desc">
+                Selects K with the highest average silhouette score —
+                a direct measure of cluster cohesion and separation.
+            </div>
+        </a>
+
+    </div>
+
+    <!-- ══ MANUAL K FORM ══ -->
+    {% if method == 'manual' %}
+    <div class="card" style="margin-bottom:22px;">
+        <div class="card-title"><span class="ct-icon">✏️</span> Set Number of Clusters</div>
+        <form class="k-form" action="{{ url_for('kmeans_page') }}" method="get">
+            <input type="hidden" name="method" value="manual">
+            <label for="kval">K =</label>
+            <input id="kval" class="k-input" type="number"
+                   name="k" min="2" max="15" value="{{ k_value }}">
+            <button type="submit" class="action-btn">
+                ▶ Run K-Means (K = {{ k_value }})
+            </button>
+        </form>
+        <div class="reason-box" style="margin-bottom:0;">
+            <strong>When to use manual K:</strong>
+            Best when domain knowledge already suggests a grouping —
+            e.g. three placement tiers (strong / average / weak → K = 3).
+            The WCSS chart shows all K values from 2–10 so you can confirm
+            your choice visually.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ══ RESULTS ══ -->
+    {% if results and not results.error %}
+    {% set r = results %}
+
+    <!-- Method banner -->
+    <div class="success-box">
+        <strong>{{ r.method_icon }} Method:</strong> {{ r.method }}<br>
+        {{ r.method_desc }}
+    </div>
+
+    <!-- Key metrics -->
+    <div class="metric-pills">
+        <div class="m-pill">
+            <div class="mp-val">{{ r.k }}</div>
+            <div class="mp-label">Clusters (K)</div>
+        </div>
+        <div class="m-pill">
+            <div class="mp-val">{{ "{:,.0f}".format(r.wcss) }}</div>
+            <div class="mp-label">WCSS (chosen K)</div>
+        </div>
+        <div class="m-pill">
+            <div class="mp-val">{{ r.silhouette if r.silhouette else "—" }}</div>
+            <div class="mp-label">Silhouette Score</div>
+        </div>
+        <div class="m-pill">
+            <div class="mp-val">{{ "{:,}".format(r.n_samples) }}</div>
+            <div class="mp-label">Students</div>
+        </div>
+        <div class="m-pill">
+            <div class="mp-val">{{ r.n_features }}</div>
+            <div class="mp-label">Features</div>
+        </div>
+    </div>
+
+    <!-- Cluster sizes -->
+    <div class="section-title">Cluster Sizes</div>
+    <div class="cluster-pills">
+        {% for name, cnt in r.cluster_sizes.items() %}
+        <div class="c-pill">
+            {{ name }} &nbsp;→&nbsp;
+            <strong>{{ "{:,}".format(cnt) }}</strong> students
+            ({{ "%.1f"|format(cnt / r.n_samples * 100) }}%)
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ══ WCSS VS K CHART (always shown) ══ -->
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">📉</span> WCSS vs Number of Clusters (K)</div>
+        <div class="reason-box">
+            <strong>What is WCSS?</strong>
+            Within-Cluster Sum of Squares measures the total squared distance of every point
+            from its cluster centre. Lower WCSS = tighter, more compact clusters.
+            Adding more clusters always reduces WCSS, but the benefit shrinks after the
+            optimal K — look for where the curve "bends".
+        </div>
+        <div class="chart-full">
+            <img src="{{ url_for('static', filename=r.chart_wcss) }}?v={{ range(99999)|random }}"
+                 alt="WCSS vs K">
+        </div>
+
+        <!-- WCSS table -->
+        <div class="section-title">WCSS Values Table</div>
+        <div class="table-wrapper" style="max-height:280px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>K (clusters)</th>
+                        <th>WCSS</th>
+                        <th>Reduction from previous K</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for i in range(r.wcss_table|length) %}
+                {% set row = r.wcss_table[i] %}
+                    <tr {% if row.k == r.k %}class="best-row"{% endif %}>
+                        <td>
+                            {{ row.k }}
+                            {% if row.k == r.k %} ⭐ selected{% endif %}
+                        </td>
+                        <td>{{ "{:,.2f}".format(row.wcss) }}</td>
+                        <td>
+                            {% if i == 0 %}
+                                —
+                            {% else %}
+                                {% set prev = r.wcss_table[i-1].wcss %}
+                                {% set drop = prev - row.wcss %}
+                                {% set drop_pct = (drop / prev * 100) if prev > 0 else 0 %}
+                                ↓ {{ "{:,.0f}".format(drop) }}
+                                ({{ "%.1f"|format(drop_pct) }}% reduction)
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══ CLUSTER SCATTER PLOT (CGPA vs AptitudeTestScore) ══ -->
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">🔵</span> Cluster Visualisation — CGPA vs Aptitude Test Score</div>
+        <div class="reason-box">
+            Each dot is a student, coloured by their assigned cluster.
+            The <strong style="color:red;">✕</strong> markers show the cluster centroids
+            (mean position of each cluster).
+            Both axes are StandardScaled so the spread is comparable.
+        </div>
+        <div class="chart-full">
+            <img src="{{ url_for('static', filename=r.chart_scatter) }}?v={{ range(99999)|random }}"
+                 alt="Cluster scatter plot">
+        </div>
+    </div>
+
+    <!-- ══ SILHOUETTE CHART (silhouette method only) ══ -->
+    {% if r.chart_sil is defined and r.chart_sil %}
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">📏</span> Silhouette Score vs K</div>
+        <div class="reason-box">
+            <strong>Silhouette score s(i)</strong> = (b(i) − a(i)) / max(a(i), b(i))<br>
+            a(i) = mean distance to points in the <em>same</em> cluster &nbsp;·&nbsp;
+            b(i) = mean distance to points in the <em>nearest other</em> cluster.<br>
+            Score near <strong>+1</strong> → well-separated. Near <strong>0</strong> → overlapping.
+            Near <strong>−1</strong> → misclassified.
+        </div>
+        <div class="chart-full">
+            <img src="{{ url_for('static', filename=r.chart_sil) }}?v={{ range(99999)|random }}"
+                 alt="Silhouette vs K">
+        </div>
+        <div class="section-title">Silhouette Values Table</div>
+        <div class="table-wrapper" style="max-height:280px;">
+            <table class="data-table">
+                <thead><tr><th>K</th><th>Avg. Silhouette Score</th></tr></thead>
+                <tbody>
+                {% for row in r.sil_table %}
+                    <tr {% if row.k == r.best_k %}class="best-row"{% endif %}>
+                        <td>{{ row.k }}{% if row.k == r.best_k %} ⭐ best{% endif %}</td>
+                        <td>{{ row.sil }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ══ CLUSTER PROFILES ══ -->
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">📊</span> Cluster Profiles — Top Discriminating Features</div>
+        <div class="reason-box">
+            The 10 features with the highest <em>variance of cluster means</em> are shown —
+            these are the dimensions on which clusters differ the most.
+            Bars are normalised per feature: <strong>0</strong> = the cluster with the lowest
+            mean, <strong>1</strong> = the cluster with the highest mean.
+        </div>
+        <div class="chart-full">
+            <img src="{{ url_for('static', filename=r.chart_profile) }}?v={{ range(99999)|random }}"
+                 alt="Cluster profiles">
+        </div>
+    </div>
+
+    <!-- ══ PER-CLUSTER FEATURE MEANS TABLE ══ -->
+    <div class="card">
+        <div class="card-title"><span class="ct-icon">📋</span> Per-Cluster Feature Means (StandardScaled)</div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Cluster</th>
+                        {% for f in r.feat_names[:14] %}
+                        <th>{{ f }}</th>
+                        {% endfor %}
+                        {% if r.feat_names|length > 14 %}
+                        <th style="color:#bbb;">+{{ r.feat_names|length - 14 }} more</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in r.cluster_means %}
+                    <tr>
+                        <td><strong>Cluster {{ row.Cluster }}</strong></td>
+                        {% for f in r.feat_names[:14] %}
+                        <td>{{ row[f] }}</td>
+                        {% endfor %}
+                        {% if r.feat_names|length > 14 %}
+                        <td style="color:#bbb;">—</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% elif results and results.error %}
+    <div class="error">{{ results.error }}</div>
+    {% endif %}
+
+</main>
+</div>
+
+</body>
+</html>
